@@ -298,31 +298,46 @@
 
     // Add transitions button to toolbar
     function addTransitionsButton() {
-      // Try multiple selectors to find the toolbar
-      let toolbar = document.querySelector('.editor-toolbar, .toolbar, [class*="toolbar"], .track-controls, [class*="track-control"], .timeline-header, [class*="timeline-header"]');
+      // Check if button already exists to prevent duplicates
+      if (document.querySelector('.transitions-toolbar-btn')) {
+        console.log('[Transitions] Button already exists');
+        return;
+      }
+
+      // Try to find the timeline control bar containing the green "+V" button
+      let toolbar = null;
       
-      // If no toolbar found, try to find the media panel header
-      if (!toolbar) {
-        const mediaPanel = document.querySelector('.media-panel, [class*="media"]');
-        if (mediaPanel) {
-          const header = mediaPanel.querySelector('header, .header, [class*="header"]');
-          if (header) toolbar = header;
+      // Look for buttons with "+V" or "+OV" or "+A" text
+      const trackButtons = document.querySelectorAll('button');
+      for (const btn of trackButtons) {
+        const btnText = btn.textContent.trim();
+        if (btnText === '+V' || btnText === '+OV' || btnText === '+A') {
+          const parent = btn.closest('div[class*="flex"], div[class*="toolbar"], div[class*="controls"]');
+          if (parent) {
+            toolbar = parent;
+            break;
+          }
         }
       }
 
-      // Try to find the track buttons container
+      // Fallback 1: Look for timeline control bar
       if (!toolbar) {
-        // Look for any container that has track-related buttons
-        const trackBtns = document.querySelectorAll('button');
-        for (const btn of trackBtns) {
-          const btnText = btn.textContent.toLowerCase();
-          if (btnText.includes('add track') || btnText.includes('video track') || btnText.includes('overlay')) {
-            // Found a track button, try to get its parent container
-            const parent = btn.closest('div[class*="flex"], div[class*="toolbar"], div[class*="header"], div[class*="panel"]');
-            if (parent) {
-              toolbar = parent;
+        toolbar = document.querySelector('.timeline-controls, [class*="timeline-control"], .track-controls, [class*="track-control"]');
+      }
+
+      // Fallback 2: Look near the timeline element
+      if (!toolbar) {
+        const timeline = document.querySelector('.timeline, [class*="timeline"]');
+        if (timeline) {
+          // Try to find sibling or parent with control bar
+          let parent = timeline.parentElement;
+          while (parent && parent !== document.body) {
+            const controls = parent.querySelector('[class*="control"], [class*="toolbar"], .flex');
+            if (controls && controls.children.length > 0) {
+              toolbar = controls;
               break;
             }
+            parent = parent.parentElement;
           }
         }
       }
@@ -349,43 +364,10 @@
         };
 
         toolbar.appendChild(btn);
-        console.log('[Transitions] Button added to toolbar');
+        console.log('[Transitions] Button added to timeline control bar');
       } else {
-        // Try to create a toolbar row near the timeline
-        const timelineContainer = document.querySelector('.timeline, [class*="timeline"], #app > div');
-        if (timelineContainer) {
-          // Create a button bar container
-          const buttonBar = document.createElement('div');
-          buttonBar.className = 'feature-buttons-row';
-          buttonBar.style.cssText = 'display:flex;gap:8px;padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;margin:8px;align-items:center;';
-          
-          const btn = document.createElement('button');
-          btn.className = 'transitions-toolbar-btn';
-          btn.innerHTML = '<span class="icon">✨</span><span>Transitions</span>';
-          btn.title = 'Add video transitions';
-          btn.onclick = () => {
-            if (!transitionsUI) {
-              transitionsUI = new TransitionsUI(
-                document.getElementById('transitionsContainer'),
-                {
-                  manager,
-                  onTransitionSelect: handleTransitionSelect,
-                  onTransitionRemove: handleTransitionRemove,
-                  onTransitionUpdate: handleTransitionUpdate
-                }
-              );
-            }
-            transitionsUI.show();
-            transitionsUI.setSelectedClip(selectedClipId);
-          };
-          
-          buttonBar.appendChild(btn);
-          timelineContainer.insertBefore(buttonBar, timelineContainer.firstChild);
-          console.log('[Transitions] Button bar created');
-        } else {
-          // Last resort: create floating button
-          createFloatingTransitionsButton();
-        }
+        // Fallback: create floating button
+        createFloatingTransitionsButton();
       }
     }
 
