@@ -1,494 +1,634 @@
 /**
- * Transitions Integration for Video Editor
- * Integrates the transitions module with the existing editor
+ * Transitions Integration v2 - Fixed
+ * Injects + buttons between adjacent video clips in the timeline
+ * and provides an inline popup to pick/remove transitions.
  */
 
-(function() {
+(function () {
   'use strict';
 
-  // Wait for DOM to be ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTransitionsIntegration);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    initTransitionsIntegration();
+    setTimeout(init, 0);
   }
 
-  function initTransitionsIntegration() {
-    console.log('[Transitions] Initializing transitions integration...');
+  function init() {
+    console.log('[Transitions] v2 – initializing...');
 
-    // Create transitions container
-    const container = document.createElement('div');
-    container.id = 'transitionsContainer';
-    container.style.display = 'none';
-    document.body.appendChild(container);
-
-    // Initialize transitions manager and UI
+    // Uses the global TransitionManager defined in transitions.js
     const manager = new TransitionManager();
-    let transitionsUI = null;
+    let activePopup = null;
 
-    // Track selected clip
-    let selectedClipId = null;
-
-    // Listen for clip selection events
-    window.addEventListener('editor:clipSelected', (e) => {
-      selectedClipId = e.detail?.clipId || null;
-      if (transitionsUI) {
-        transitionsUI.setSelectedClip(selectedClipId);
-      }
-    });
-
-    // Listen for timeline click events
-    document.addEventListener('click', (e) => {
-      const clipElement = e.target.closest('[data-clip-id], .clip, .timeline-clip');
-      if (clipElement) {
-        selectedClipId = clipElement.dataset.clipId || clipElement.dataset.id;
-        if (transitionsUI) {
-          transitionsUI.setSelectedClip(selectedClipId);
-        }
-        
-        // Dispatch event for other components
-        window.dispatchEvent(new CustomEvent('editor:clipSelected', {
-          detail: { clipId: selectedClipId }
-        }));
-      }
-    });
-
-    // Handle transition selection
-    function handleTransitionSelect(clipId, transitionType, options) {
-      console.log('[Transitions] Adding transition:', transitionType, 'to clip:', clipId);
-
-      // Find the clip and next clip in timeline
-      const clipData = findClipInProject(clipId);
-      if (!clipData) {
-        showNotification('Clip not found in timeline', 'error');
-        return;
-      }
-
-      const { clip, track, nextClip } = clipData;
-      
-      if (!nextClip) {
-        showNotification('Add another clip after this one to create a transition', 'warning');
-        return;
-      }
-
-      // Validate transition duration
-      const maxDuration = Math.min(clip.duration, nextClip.duration) / 2;
-      const duration = Math.min(options.duration || 1.0, maxDuration);
-
-      // Add transition
-      const transition = manager.addTransition(clipId, nextClip.id, transitionType, {
-        ...options,
-        duration
-      });
-
-      // Save to project
-      saveTransitionToProject(clipId, transition);
-
-      // Update UI
-      updateClipTransitionIndicator(clipId, true);
-      
-      showNotification(`${TRANSITION_TYPES[transitionType.toUpperCase()]?.name || transitionType} transition added!`, 'success');
-    }
-
-    // Handle transition removal
-    function handleTransitionRemove(clipId) {
-      console.log('[Transitions] Removing transition from clip:', clipId);
-      
-      removeTransitionFromProject(clipId);
-      updateClipTransitionIndicator(clipId, false);
-      
-      showNotification('Transition removed', 'info');
-    }
-
-    // Handle transition update
-    function handleTransitionUpdate(clipId, updates) {
-      const editorStore = getEditorStoreFromWindow();
-      const transition = editorStore ? manager.getTransition(clipId) : null;
-      if (!transition) return;
-
-      // Update duration
-      if (updates.duration !== undefined) {
-        const clipData = findClipInProject(clipId);
-        if (clipData && clipData.nextClip) {
-          const maxDuration = Math.min(clipData.clip.duration, clipData.nextClip.duration) / 2;
-          transition.duration = Math.min(updates.duration, maxDuration);
-        }
-      }
-
-      // Save updated transition
-      saveTransitionToProject(clipId, transition);
-    }
-
-    // Find clip in project - improved method
-    function findClipInProject(clipId) {
-      // Use the same method as TransitionsStoreMonitor
-      const editorStore = getEditorStoreFromWindow();
-      
-      if (!editorStore || !editorStore.project?.tracks) {
-        // Fallback: search in DOM
-        return findClipInDOM(clipId);
-      }
-
-      // Search in store
-      for (const track of editorStore.project.tracks) {
-        if (track.clips) {
-          const clipIndex = track.clips.findIndex(c => c.id === clipId);
-          if (clipIndex !== -1) {
-            return {
-              clip: track.clips[clipIndex],
-              track: track,
-              nextClip: track.clips[clipIndex + 1] || null
-            };
-          }
-        }
-      }
-
-      return null;
-    }
-
-    // Get editor store from window - same as TransitionsStoreMonitor
-    function getEditorStoreFromWindow() {
-      // Method 1: Direct store reference
+    // ── Store helpers ──────────────────────────────────────────────────────────
+    function getStore() {
       if (window.editorStore) return window.editorStore;
-      
-      // Method 2: Pinia store
       if (window.$pinia) {
-        const stores = window.$pinia._s || window.$pinia.state?.value || {};
-        for (const [name, store] of Object.entries(stores)) {
-          if (name.includes('editor') || name.includes('project')) {
-            return store._store || store;
-          }
+        const s = window.$pinia._s || {};
+        for (const [k, v] of Object.entries(s)) {
+          if (/editor|project/i.test(k)) return v._store || v;
         }
       }
-      
-      // Method 3: Function to get store
       if (window.useEditorStore) {
-        try {
-          return window.useEditorStore();
-        } catch (e) {
-          // Function might not be ready yet
-        }
+        try { return window.useEditorStore(); } catch (_) {}
       }
-      
-      // Method 4: Check window object for store-like objects
-      const possibleNames = ['editorStore', 'projectStore', 'timelineStore'];
-      for (const name of possibleNames) {
-        if (window[name] && typeof window[name] === 'object' && 
-            (window[name].project || window[name].currentTime || window[name].tracks)) {
-          return window[name];
-        }
-      }
-      
       return null;
     }
 
-    // Find clip in DOM (fallback)
-    function findClipInDOM(clipId) {
-      const clipElement = document.querySelector(`[data-clip-id="${clipId}"], [data-id="${clipId}"]`);
-      if (!clipElement) return null;
+    function getStoredTransitions() {
+      return getStore()?.project?.transitions || [];
+    }
 
-      // Try to extract clip data from element
-      const startTime = parseFloat(clipElement.dataset.startTime || 0);
-      const duration = parseFloat(clipElement.dataset.duration || 0);
+    function getTransitionBetween(aId, bId) {
+      return getStoredTransitions().find(
+        t => t.fromClipId === aId && t.toClipId === bId
+      ) || null;
+    }
 
-      return {
-        clip: { id: clipId, startTime, duration },
-        track: null,
-        nextClip: null // Would need to find next sibling
+    function saveTransitionToStore(fromId, toId, type, duration) {
+      const store = getStore();
+      if (!store) {
+        console.warn('[Transitions] Editor store not found – retrying in 500 ms');
+        // Queue and retry
+        setTimeout(() => saveTransitionToStore(fromId, toId, type, duration), 500);
+        return null;
+      }
+
+      if (!store.project.transitions) store.project.transitions = [];
+
+      // Remove existing transition for this clip pair
+      store.project.transitions = store.project.transitions.filter(
+        t => !(
+          (t.fromClipId === fromId && t.toClipId === toId) ||
+          (t.fromClipId === toId   && t.toClipId === fromId)
+        )
+      );
+
+      const t = {
+        id: crypto.randomUUID(),
+        fromClipId: fromId,
+        toClipId: toId,
+        type,
+        duration: duration || 1.0,
+        createdAt: Date.now()
       };
+
+      store.project.transitions.push(t);
+      manager.transitions.set(fromId, t);
+      manager.transitions.set(toId, t);
+
+      if (typeof store.saveNow      === 'function') store.saveNow();
+      if (typeof store.pushSnapshot === 'function') store.pushSnapshot();
+
+      console.log('[Transitions] Saved:', t);
+      return t;
     }
 
-    // Save transition to project
-    function saveTransitionToProject(clipId, transition) {
-      const editorStore = getEditorStoreFromWindow();
-      if (!editorStore) return;
+    function removeTransitionFromStore(fromId, toId) {
+      const store = getStore();
+      if (!store?.project?.transitions) return;
 
-      // Add transitions array to project if not exists
-      if (!editorStore.project.transitions) {
-        editorStore.project.transitions = [];
-      }
-
-      // Remove existing transition for this clip
-      editorStore.project.transitions = editorStore.project.transitions.filter(
-        t => t.fromClipId !== clipId && t.toClipId !== clipId
+      store.project.transitions = store.project.transitions.filter(
+        t => !(
+          (t.fromClipId === fromId && t.toClipId === toId) ||
+          (t.fromClipId === toId   && t.toClipId === fromId)
+        )
       );
+      manager.transitions.delete(fromId);
+      manager.transitions.delete(toId);
 
-      // Add new transition
-      editorStore.project.transitions.push(transition);
+      if (typeof store.saveNow      === 'function') store.saveNow();
+      if (typeof store.pushSnapshot === 'function') store.pushSnapshot();
 
-      // Trigger save
-      if (typeof editorStore.saveNow === 'function') {
-        editorStore.saveNow();
-      }
-
-      console.log('[Transitions] Saved to project:', transition);
+      console.log('[Transitions] Removed transition between', fromId, '->', toId);
     }
 
-    // Remove transition from project
-    function removeTransitionFromProject(clipId) {
-      const editorStore = getEditorStoreFromWindow();
-      if (!editorStore || !editorStore.project?.transitions) return;
-
-      editorStore.project.transitions = editorStore.project.transitions.filter(
-        t => t.fromClipId !== clipId && t.toClipId !== clipId
-      );
-
-      if (typeof editorStore.saveNow === 'function') {
-        editorStore.saveNow();
-      }
+    // ── Notifications ──────────────────────────────────────────────────────────
+    function notify(msg, type = 'info') {
+      document.querySelector('.ck-t-note')?.remove();
+      const el = document.createElement('div');
+      el.className = 'ck-t-note';
+      Object.assign(el.style, {
+        position: 'fixed', bottom: '24px', right: '24px',
+        padding: '10px 18px', borderRadius: '8px',
+        fontSize: '13px', fontWeight: '500', zIndex: '10010',
+        color: '#fff',
+        background: { success: '#22c55e', error: '#ef4444', info: '#3b82f6', warning: '#f59e0b' }[type] || '#3b82f6',
+        boxShadow: '0 8px 20px rgba(0,0,0,.35)',
+        animation: 'ckTIn .3s ease-out',
+        pointerEvents: 'none'
+      });
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
     }
 
-    // Update clip transition indicator
-    function updateClipTransitionIndicator(clipId, hasTransition) {
-      const clipElement = document.querySelector(`[data-clip-id="${clipId}"], [data-id="${clipId}"]`);
-      if (!clipElement) return;
-
-      if (hasTransition) {
-        // Add transition indicator
-        if (!clipElement.querySelector('.transition-badge')) {
-          const badge = document.createElement('div');
-          badge.className = 'transition-badge';
-          badge.innerHTML = '✨';
-          clipElement.appendChild(badge);
-        }
-        clipElement.classList.add('has-transition');
-      } else {
-        // Remove transition indicator
-        const badge = clipElement.querySelector('.transition-badge');
-        if (badge) badge.remove();
-        clipElement.classList.remove('has-transition');
-      }
+    // ── Popup ──────────────────────────────────────────────────────────────────
+    function closePopup() {
+      activePopup?.remove();
+      activePopup = null;
     }
 
-    // Show notification
-    function showNotification(message, type = 'info') {
-      const notification = document.createElement('div');
-      notification.className = `transitions-notification transitions-notification-${type}`;
-      notification.textContent = message;
+    function buildCards(cat, curType) {
+      const list = cat === 'all'
+        ? Object.values(TRANSITION_TYPES)
+        : Object.values(TRANSITION_TYPES).filter(t => t.category === cat);
 
-      Object.assign(notification.style, {
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        padding: '12px 20px',
-        borderRadius: '8px',
-        fontSize: '14px',
-        fontWeight: '500',
-        zIndex: '10002',
-        animation: 'slideInRight 0.3s ease-out',
-        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)'
+      return list.map(t => `
+        <div class="ck-tp-card${t.id === curType ? ' active' : ''}" data-t="${t.id}" title="${t.description}">
+          <span>${t.icon}</span><em>${t.name}</em>
+        </div>
+      `).join('');
+    }
+
+    function openPicker(triggerBtn, fromId, toId) {
+      closePopup();
+      const existing = getTransitionBetween(fromId, toId);
+
+      const popup = document.createElement('div');
+      popup.className = 'ck-tp-popup';
+      activePopup = popup;
+
+      popup.innerHTML = `
+        <div class="ck-tp-hdr">
+          <span>⚡ Add Transition</span>
+          <button class="ck-tp-x" title="Close">×</button>
+        </div>
+        ${existing ? `
+          <div class="ck-tp-cur">
+            <span>${TRANSITION_TYPES[existing.type.toUpperCase()]?.icon || '✨'}</span>
+            <b>${TRANSITION_TYPES[existing.type.toUpperCase()]?.name || existing.type}</b>
+            <button class="ck-tp-del" title="Remove transition">✕ Remove</button>
+          </div>
+          <div class="ck-tp-dur">
+            <label>Duration <span class="ck-tp-durval">${(existing.duration || 1.0).toFixed(1)}s</span></label>
+            <input type="range" class="ck-tp-slider" min="0.1" max="3" step="0.1" value="${existing.duration || 1}">
+          </div>
+        ` : ''}
+        <div class="ck-tp-cats">
+          <button class="ck-tp-cat active" data-c="all">All</button>
+          <button class="ck-tp-cat" data-c="fade">Fade</button>
+          <button class="ck-tp-cat" data-c="wipe">Wipe</button>
+          <button class="ck-tp-cat" data-c="slide">Slide</button>
+          <button class="ck-tp-cat" data-c="zoom">Zoom</button>
+          <button class="ck-tp-cat" data-c="effect">FX</button>
+          <button class="ck-tp-cat" data-c="shape">Shape</button>
+        </div>
+        <div class="ck-tp-grid">${buildCards('all', existing?.type)}</div>
+      `;
+
+      document.body.appendChild(popup);
+
+      // Position popup below the trigger button, keeping it on-screen
+      const r = triggerBtn.getBoundingClientRect();
+      const popupW = 290;
+      let left = r.left + r.width / 2 - popupW / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - popupW - 8));
+      popup.style.left = left + 'px';
+      popup.style.top  = (r.bottom + 6) + 'px';
+
+      // Events ─────────────────────────────────────────────────────────────────
+      popup.querySelector('.ck-tp-x').onclick = closePopup;
+
+      popup.querySelector('.ck-tp-del')?.addEventListener('click', () => {
+        removeTransitionFromStore(fromId, toId);
+        refreshBtn(triggerBtn, fromId, toId);
+        closePopup();
+        notify('Transition removed', 'info');
       });
 
-      const colors = {
-        success: '#22c55e',
-        error: '#ef4444',
-        info: '#3b82f6',
-        warning: '#f59e0b'
-      };
-      notification.style.background = colors[type] || colors.info;
-      notification.style.color = 'white';
+      // Category filter
+      popup.querySelector('.ck-tp-cats').addEventListener('click', e => {
+        const btn = e.target.closest('.ck-tp-cat');
+        if (!btn) return;
+        popup.querySelectorAll('.ck-tp-cat').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        popup.querySelector('.ck-tp-grid').innerHTML = buildCards(btn.dataset.c, getTransitionBetween(fromId, toId)?.type);
+        bindCards();
+      });
 
-      document.body.appendChild(notification);
+      // Duration slider
+      popup.querySelector('.ck-tp-slider')?.addEventListener('input', e => {
+        const val = parseFloat(e.target.value);
+        popup.querySelector('.ck-tp-durval').textContent = val.toFixed(1) + 's';
+        const cur = getTransitionBetween(fromId, toId);
+        if (cur) {
+          cur.duration = val;
+          const store = getStore();
+          if (typeof store?.saveNow === 'function') store.saveNow();
+        }
+      });
 
+      bindCards();
+
+      // Close on outside click
       setTimeout(() => {
-        notification.style.animation = 'slideOutRight 0.3s ease-out';
-        setTimeout(() => notification.remove(), 3000);
-      }, 3000);
+        document.addEventListener('click', onOutside);
+      }, 10);
+
+      function onOutside(e) {
+        if (!popup.contains(e.target) && !triggerBtn.contains(e.target)) {
+          closePopup();
+          document.removeEventListener('click', onOutside);
+        }
+      }
+
+      function bindCards() {
+        popup.querySelectorAll('.ck-tp-card').forEach(card => {
+          card.onclick = () => {
+            const tId   = card.dataset.t;
+            const tInfo = Object.values(TRANSITION_TYPES).find(t => t.id === tId);
+            const dur   = tInfo?.defaultDuration || 1.0;
+
+            saveTransitionToStore(fromId, toId, tId, dur);
+            refreshBtn(triggerBtn, fromId, toId);
+
+            // Refresh popup to show current state
+            closePopup();
+            openPicker(triggerBtn, fromId, toId);
+
+            notify(`${tInfo?.name || tId} transition added!`, 'success');
+          };
+        });
+      }
     }
 
-    // Add transitions button to toolbar
-    function addTransitionsButton() {
-      // Check if button already exists to prevent duplicates
-      if (document.querySelector('.transitions-toolbar-btn')) {
-        console.log('[Transitions] Button already exists');
-        return;
-      }
-
-      // Try to find the timeline control bar containing the green "+V" button
-      let toolbar = null;
-      
-      // Look for buttons with "+V" or "+OV" or "+A" text
-      const trackButtons = document.querySelectorAll('button');
-      for (const btn of trackButtons) {
-        const btnText = btn.textContent.trim();
-        if (btnText === '+V' || btnText === '+OV' || btnText === '+A') {
-          const parent = btn.closest('div[class*="flex"], div[class*="toolbar"], div[class*="controls"]');
-          if (parent) {
-            toolbar = parent;
-            break;
-          }
-        }
-      }
-
-      // Fallback 1: Look for timeline control bar
-      if (!toolbar) {
-        toolbar = document.querySelector('.timeline-controls, [class*="timeline-control"], .track-controls, [class*="track-control"]');
-      }
-
-      // Fallback 2: Look near the timeline element
-      if (!toolbar) {
-        const timeline = document.querySelector('.timeline, [class*="timeline"]');
-        if (timeline) {
-          // Try to find sibling or parent with control bar
-          let parent = timeline.parentElement;
-          while (parent && parent !== document.body) {
-            const controls = parent.querySelector('[class*="control"], [class*="toolbar"], .flex');
-            if (controls && controls.children.length > 0) {
-              toolbar = controls;
-              break;
-            }
-            parent = parent.parentElement;
-          }
-        }
-      }
-
-      if (toolbar) {
-        const btn = document.createElement('button');
-        btn.className = 'transitions-toolbar-btn';
-        btn.innerHTML = '<span class="icon">✨</span><span>Transitions</span>';
-        btn.title = 'Add video transitions';
-        btn.onclick = () => {
-          if (!transitionsUI) {
-            transitionsUI = new TransitionsUI(
-              document.getElementById('transitionsContainer'),
-              {
-                manager,
-                onTransitionSelect: handleTransitionSelect,
-                onTransitionRemove: handleTransitionRemove,
-                onTransitionUpdate: handleTransitionUpdate
-              }
-            );
-          }
-          transitionsUI.show();
-          transitionsUI.setSelectedClip(selectedClipId);
-        };
-
-        toolbar.appendChild(btn);
-        console.log('[Transitions] Button added to timeline control bar');
+    // ── + button state ─────────────────────────────────────────────────────────
+    function refreshBtn(btn, fromId, toId) {
+      const t = getTransitionBetween(fromId, toId);
+      if (t) {
+        const tInfo = Object.values(TRANSITION_TYPES).find(x => x.id === t.type);
+        btn.classList.add('ck-has-t');
+        btn.innerHTML = `<span>${tInfo?.icon || '✨'}</span>`;
+        btn.title = `Transition: ${tInfo?.name || t.type} (click to change)`;
       } else {
-        // Fallback: create floating button
-        createFloatingTransitionsButton();
+        btn.classList.remove('ck-has-t');
+        btn.innerHTML = '<span>+</span>';
+        btn.title = 'Add transition between clips';
       }
     }
 
-    // Create floating button as fallback
-    function createFloatingTransitionsButton() {
-      const floatingBtn = document.createElement('button');
-      floatingBtn.className = 'transitions-floating-btn';
-      floatingBtn.innerHTML = '✨';
-      floatingBtn.title = 'Add video transitions';
-      Object.assign(floatingBtn.style, {
-        position: 'fixed',
-        bottom: '84px',
-        right: '20px',
-        width: '56px',
-        height: '56px',
-        borderRadius: '50%',
-        background: '#7c3aed',
-        color: 'white',
-        border: 'none',
-        fontSize: '24px',
-        cursor: 'pointer',
-        boxShadow: '0 4px 12px rgba(124, 58, 237, 0.4)',
-        zIndex: '9998',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'transform 0.2s, box-shadow 0.2s'
+    // ── Create + button ────────────────────────────────────────────────────────
+    function makePlusBtn(fromEl, toEl) {
+      const fromId = fromEl.dataset.clipId || fromEl.dataset.id;
+      const toId   = toEl.dataset.clipId   || toEl.dataset.id;
+      if (!fromId || !toId || fromId === toId) return;
+
+      // Avoid duplicates
+      if (document.querySelector(`.ck-plus-btn[data-from="${fromId}"][data-to="${toId}"]`)) return;
+
+      const btn = document.createElement('button');
+      btn.className = 'ck-plus-btn';
+      btn.dataset.from = fromId;
+      btn.dataset.to   = toId;
+      refreshBtn(btn, fromId, toId);
+
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        openPicker(btn, fromId, toId);
       });
 
-      floatingBtn.onmouseenter = () => {
-        floatingBtn.style.transform = 'scale(1.1)';
-        floatingBtn.style.boxShadow = '0 6px 20px rgba(124, 58, 237, 0.5)';
-      };
-
-      floatingBtn.onmouseleave = () => {
-        floatingBtn.style.transform = 'scale(1)';
-        floatingBtn.style.boxShadow = '0 4px 12px rgba(124, 58, 237, 0.4)';
-      };
-
-      floatingBtn.onclick = () => {
-        if (!transitionsUI) {
-          transitionsUI = new TransitionsUI(
-            document.getElementById('transitionsContainer'),
-            {
-              manager,
-              onTransitionSelect: handleTransitionSelect,
-              onTransitionRemove: handleTransitionRemove,
-              onTransitionUpdate: handleTransitionUpdate
-            }
-          );
-        }
-        transitionsUI.show();
-        transitionsUI.setSelectedClip(selectedClipId);
-      };
-
-      document.body.appendChild(floatingBtn);
-      console.log('[Transitions] Floating button added');
+      const parent = fromEl.parentElement;
+      if (!parent) return;
+      if (getComputedStyle(parent).position === 'static') {
+        parent.style.position = 'relative';
+      }
+      parent.appendChild(btn);
+      positionBtn(btn, fromEl);
     }
 
-    // Add CSS animations
-    function addAnimations() {
-      const style = document.createElement('style');
-      style.textContent = `
-        @keyframes slideInRight {
-          from { opacity: 0; transform: translateX(100px); }
-          to { opacity: 1; transform: translateX(0); }
+    function positionBtn(btn, fromEl) {
+      const parent = fromEl.parentElement;
+      if (!parent) return;
+      const pr = parent.getBoundingClientRect();
+      const fr = fromEl.getBoundingClientRect();
+      // Horizontally: right edge of fromEl minus half button width
+      const left = fr.right - pr.left - 10;
+      // Vertically: center of fromEl
+      const top  = fr.top - pr.top + fr.height / 2 - 10;
+      btn.style.left = `${left}px`;
+      btn.style.top  = `${top}px`;
+    }
+
+    // ── Inject buttons into timeline ───────────────────────────────────────────
+    // Broad set of selectors to cover different Vue component output patterns
+    const CLIP_SELECTORS = [
+      '[data-clip-id]',
+      '.clip-item',
+      '[class*="clipItem"]',
+      '[class*="TimelineClip"]',
+      '[class*="timeline-clip"]',
+      '[class*="timelineClip"]',
+    ].join(', ');
+
+    function inject() {
+      const allClips = Array.from(document.querySelectorAll(CLIP_SELECTORS))
+        .filter(el =>
+          !el.classList.contains('ck-plus-btn') &&
+          !el.closest('.ck-tp-popup') &&
+          (el.dataset.clipId || el.dataset.id)
+        );
+
+      if (allClips.length === 0) return;
+
+      // Group clips by direct parent (= one timeline track row)
+      const byParent = new Map();
+      allClips.forEach(el => {
+        const p = el.parentElement;
+        if (!p) return;
+        if (!byParent.has(p)) byParent.set(p, []);
+        byParent.get(p).push(el);
+      });
+
+      byParent.forEach((clips, _parent) => {
+        if (clips.length < 2) return;
+        // Sort left→right so we pair correctly
+        const sorted = clips.slice().sort((a, b) => a.offsetLeft - b.offsetLeft);
+        for (let i = 0; i < sorted.length - 1; i++) {
+          makePlusBtn(sorted[i], sorted[i + 1]);
         }
-        @keyframes slideOutRight {
-          from { opacity: 1; transform: translateX(0); }
-          to { opacity: 0; transform: translateX(100px); }
+      });
+    }
+
+    function refreshAllBtns() {
+      document.querySelectorAll('.ck-plus-btn').forEach(btn => {
+        const fromId = btn.dataset.from;
+        const toId   = btn.dataset.to;
+        const fromEl = document.querySelector(
+          `[data-clip-id="${fromId}"], [data-id="${fromId}"]`
+        );
+        if (!fromEl || !fromEl.parentElement?.contains(btn)) {
+          btn.remove(); // clip was removed from timeline
+        } else {
+          positionBtn(btn, fromEl);
+          refreshBtn(btn, fromId, toId);
+        }
+      });
+    }
+
+    // ── MutationObserver – reacts to Vue re-renders ────────────────────────────
+    let debounce = null;
+    function scheduleInject() {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        inject();
+        refreshAllBtns();
+      }, 150);
+    }
+
+    function watchTimeline() {
+      // Prefer the narrowest stable ancestor we can find
+      const target =
+        document.querySelector('#app, .timeline, [class*="Timeline"], [class*="timeline"]') ||
+        document.body;
+
+      new MutationObserver(scheduleInject)
+        .observe(target, { childList: true, subtree: true });
+
+      console.log('[Transitions] MutationObserver watching:', target.id || target.className?.split(' ')[0] || target.tagName);
+    }
+
+    // ── Load existing transitions from project store into manager ──────────────
+    function syncFromStore() {
+      const store = getStore();
+      if (!store?.project?.transitions) return;
+      store.project.transitions.forEach(t => {
+        manager.transitions.set(t.fromClipId, t);
+        manager.transitions.set(t.toClipId,   t);
+      });
+      console.log('[Transitions] Synced', store.project.transitions.length, 'transitions from store');
+      refreshAllBtns();
+    }
+
+    // ── Inject global CSS ──────────────────────────────────────────────────────
+    function injectStyles() {
+      if (document.querySelector('#ck-trans-styles')) return;
+      const s = document.createElement('style');
+      s.id = 'ck-trans-styles';
+      s.textContent = `
+        @keyframes ckTIn {
+          from { opacity:0; transform:translateX(40px); }
+          to   { opacity:1; transform:translateX(0); }
+        }
+
+        /* ── + button sitting on the boundary between two clips ── */
+        .ck-plus-btn {
+          position: absolute;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: rgba(124,58,237,.9);
+          border: 2px solid rgba(255,255,255,.9);
+          color: #fff;
+          font-size: 15px;
+          font-weight: 700;
+          line-height: 1;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 200;
+          transition: transform .15s ease, background .15s ease, box-shadow .15s ease;
+          padding: 0;
+          box-shadow: 0 2px 8px rgba(0,0,0,.5);
+          pointer-events: all;
+        }
+        .ck-plus-btn:hover {
+          transform: scale(1.3);
+          background: #7c3aed;
+          box-shadow: 0 0 0 3px rgba(124,58,237,.35);
+        }
+        /* Green = transition already applied */
+        .ck-plus-btn.ck-has-t {
+          background: rgba(34,197,94,.95);
+          border-color: rgba(255,255,255,.9);
+        }
+        .ck-plus-btn.ck-has-t:hover {
+          background: #16a34a;
+          box-shadow: 0 0 0 3px rgba(34,197,94,.35);
+        }
+
+        /* ── Transition picker popup ── */
+        .ck-tp-popup {
+          position: fixed;
+          width: 290px;
+          background: #1e1e22;
+          border: 1px solid #3f3f46;
+          border-radius: 12px;
+          box-shadow: 0 20px 50px rgba(0,0,0,.65);
+          z-index: 10010;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          overflow: hidden;
+          animation: ckTPopIn .2s ease-out;
+        }
+        @keyframes ckTPopIn {
+          from { opacity:0; transform:translateY(-6px) scale(.97); }
+          to   { opacity:1; transform:translateY(0)   scale(1); }
+        }
+
+        .ck-tp-hdr {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 14px;
+          background: #18181b;
+          border-bottom: 1px solid #3f3f46;
+          font-size: 13px;
+          font-weight: 600;
+          color: #e4e4e7;
+        }
+        .ck-tp-x {
+          background: none;
+          border: none;
+          color: #a1a1aa;
+          font-size: 20px;
+          cursor: pointer;
+          line-height: 1;
+          padding: 0 2px;
+        }
+        .ck-tp-x:hover { color:#fff; }
+
+        .ck-tp-cur {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
+          background: rgba(34,197,94,.1);
+          border-bottom: 1px solid #3f3f46;
+          font-size: 12px;
+          color: #e4e4e7;
+        }
+        .ck-tp-cur b { flex:1; }
+        .ck-tp-del {
+          background: none;
+          border: 1px solid #ef4444;
+          border-radius: 5px;
+          color: #ef4444;
+          cursor: pointer;
+          font-size: 11px;
+          padding: 2px 8px;
+        }
+        .ck-tp-del:hover { background: rgba(239,68,68,.15); }
+
+        .ck-tp-dur {
+          padding: 8px 14px;
+          border-bottom: 1px solid #3f3f46;
+        }
+        .ck-tp-dur label {
+          font-size: 11px;
+          color: #a1a1aa;
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 5px;
+        }
+        .ck-tp-durval { color:#e4e4e7; font-weight:600; }
+        .ck-tp-slider {
+          width: 100%;
+          height: 4px;
+          -webkit-appearance: none;
+          background: #3f3f46;
+          border-radius: 2px;
+          outline: none;
+          cursor: pointer;
+        }
+        .ck-tp-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width:14px; height:14px;
+          background: #7c3aed;
+          border-radius: 50%;
+          cursor: pointer;
+        }
+
+        .ck-tp-cats {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          padding: 8px 10px;
+          border-bottom: 1px solid #3f3f46;
+        }
+        .ck-tp-cat {
+          padding: 3px 9px;
+          border: 1px solid #3f3f46;
+          border-radius: 99px;
+          background: transparent;
+          color: #a1a1aa;
+          font-size: 11px;
+          cursor: pointer;
+          transition: all .15s;
+        }
+        .ck-tp-cat:hover  { background:#3f3f46; color:#fff; }
+        .ck-tp-cat.active { background:#7c3aed; border-color:#7c3aed; color:#fff; }
+
+        .ck-tp-grid {
+          display: grid;
+          grid-template-columns: repeat(4,1fr);
+          gap: 4px;
+          padding: 8px 10px;
+          max-height: 210px;
+          overflow-y: auto;
+        }
+        .ck-tp-grid::-webkit-scrollbar { width:4px; }
+        .ck-tp-grid::-webkit-scrollbar-track { background:#18181b; }
+        .ck-tp-grid::-webkit-scrollbar-thumb { background:#3f3f46; border-radius:2px; }
+
+        .ck-tp-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 3px;
+          padding: 8px 4px;
+          border: 1px solid #3f3f46;
+          border-radius: 8px;
+          background: #27272a;
+          cursor: pointer;
+          transition: all .15s;
+          text-align: center;
+          user-select: none;
+        }
+        .ck-tp-card:hover  { border-color:#7c3aed; background:#2d2d35; transform:translateY(-1px); }
+        .ck-tp-card.active { border-color:#22c55e; background:rgba(34,197,94,.1); }
+        .ck-tp-card span   { font-size:18px; }
+        .ck-tp-card em     {
+          font-size:9px; color:#a1a1aa; font-style:normal;
+          white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%;
+        }
+
+        /* notification toast */
+        .ck-t-note {
+          pointer-events: none;
         }
       `;
-      document.head.appendChild(style);
+      document.head.appendChild(s);
     }
 
-    // Load existing transitions from project
-    function loadExistingTransitions() {
-      const editorStore = getEditorStoreFromWindow();
-      if (!editorStore || !editorStore.project?.transitions) return;
+    // ── Bootstrap ──────────────────────────────────────────────────────────────
+    injectStyles();
 
-      editorStore.project.transitions.forEach(t => {
-        manager.transitions.set(t.fromClipId, t);
-        manager.transitions.set(t.toClipId, t);
-      });
+    // Give Vue time to finish its first render
+    setTimeout(() => {
+      inject();
+      watchTimeline();
+    }, 1200);
 
-      console.log('[Transitions] Loaded existing transitions:', editorStore.project.transitions.length);
-    }
+    // Retry injections for lazy-loaded clip data
+    setTimeout(() => { inject(); syncFromStore(); }, 3000);
+    setTimeout(() => { inject(); syncFromStore(); }, 6000);
 
-    // Initialize
-    addAnimations();
-    setTimeout(addTransitionsButton, 1000);
-    setTimeout(addTransitionsButton, 3000);
-    
-    // Load existing transitions after a delay
-    setTimeout(loadExistingTransitions, 1500);
+    window.addEventListener('resize', refreshAllBtns);
 
-    console.log('[Transitions] Integration initialized');
+    // Listen for external clip-selection events from other integration modules
+    window.addEventListener('editor:clipSelected', () => {
+      refreshAllBtns();
+    });
 
-    // Expose API
+    // Public API
     window.TransitionsIntegration = {
       manager,
-      show: () => {
-        if (!transitionsUI) {
-          transitionsUI = new TransitionsUI(
-            document.getElementById('transitionsContainer'),
-            {
-              manager,
-              onTransitionSelect: handleTransitionSelect,
-              onTransitionRemove: handleTransitionRemove,
-              onTransitionUpdate: handleTransitionUpdate
-            }
-          );
-        }
-        transitionsUI.show();
-        transitionsUI.setSelectedClip(selectedClipId);
-      },
-      hide: () => transitionsUI?.hide(),
-      setSelectedClip: (clipId) => {
-        selectedClipId = clipId;
-        transitionsUI?.setSelectedClip(clipId);
-      }
+      inject,
+      refreshAllBtns,
+      syncFromStore
     };
+
+    console.log('[Transitions] v2 ready');
   }
 })();
