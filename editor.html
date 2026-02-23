@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Editor</title>
+    <script type="module" crossorigin src="/editor.js"></script>
+    <link rel="modulepreload" crossorigin href="/chunks/main-Bu1yZWFu.js">
+    <link rel="modulepreload" crossorigin href="/chunks/indexeddb-BQXE7YLk.js">
+    <link rel="stylesheet" crossorigin href="/assets/main-ciIo1dni.css">
+    <!-- Voice Over Feature -->
+    <link rel="stylesheet" href="/voiceover.css">
+    <script src="/voiceover.js"></script>
+    <script src="/voiceover-store-monitor.js"></script>
+    <script src="/voiceover-integration.js"></script>
+    <!-- Transitions Feature -->
+    <link rel="stylesheet" href="/transitions.css">
+    <script src="/transitions.js"></script>
+    <script src="/transitions-store-monitor.js"></script>
+    <script src="/transitions-integration.js"></script>
+    <!-- Audio Control Feature -->
+    <script src="/audio-control.js"></script>
+    <!-- Fast Export Feature -->
+    <script src="/fast-export.js"></script>
+    <!-- Media store integration for voiceover and other features -->
+    <script>
+      (function() {
+        // Function to get the media store - tries multiple methods
+        function getMediaStore() {
+          // Method 1: Try to get from Pinia store
+          if (window.useMediaStore) {
+            try {
+              return window.useMediaStore();
+            } catch(e) {}
+          }
+          
+          // Method 2: Try Vue devtools
+          try {
+            const vueApps = window.__VUE_DEVTOOLS_GLOBAL_HOOK__?.apps;
+            if (vueApps && vueApps.length > 0) {
+              for (const app of vueApps) {
+                if (app && app.config && app.config.globalProperties) {
+                  const props = app.config.globalProperties;
+                  // Try to find media-related store
+                  for (const key in props) {
+                    if (key.toLowerCase().includes('media') && typeof props[key] === 'object') {
+                      const store = props[key];
+                      if (store && typeof store.load === 'function') {
+                        return store;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } catch(e) {}
+          
+          return null;
+        }
+        
+        // Function to reload media store
+        async function reloadMediaStore() {
+          const store = getMediaStore();
+          if (store && typeof store.load === 'function') {
+            await store.load();
+            console.log('[MediaStore] Reloaded successfully');
+            return true;
+          }
+          console.log('[MediaStore] Could not find store to reload');
+          return false;
+        }
+        
+        // Function to add media directly
+        async function addMediaToStore(mediaItem) {
+          const store = getMediaStore();
+          if (store && typeof store.addItem === 'function') {
+            await store.addItem(mediaItem);
+            console.log('[MediaStore] Added item directly');
+            return true;
+          }
+          // Fallback: try saveMedia from indexedDB
+          if (window.saveMediaToIndexedDB) {
+            await window.saveMediaToIndexedDB(mediaItem);
+          }
+          // Reload the store
+          await reloadMediaStore();
+          return true;
+        }
+        
+        // Expose functions globally
+        window.useMediaStore = getMediaStore;
+        window.reloadMediaStore = reloadMediaStore;
+        window.addMediaToStore = addMediaToStore;
+        
+        // Set up event listeners for voiceover integration
+        window.addEventListener('media:added', async function(event) {
+          console.log('[Media Event] Received media:added event');
+          await reloadMediaStore();
+        });
+        
+        window.addEventListener('media:reload', async function() {
+          console.log('[Media Event] Received media:reload event');
+          await reloadMediaStore();
+        });
+        
+        console.log('[MediaStore] Integration initialized');
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>

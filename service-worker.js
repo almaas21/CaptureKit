@@ -1,0 +1,1 @@
+let r=!1;chrome.runtime.onMessage.addListener((c,t,e)=>{switch(c.type){case"RECORDING_STARTED":r=!0,e({success:!0});break;case"RECORDING_STOPPED":r=!1,e({success:!0});break;case"STOP_RECORDING":chrome.runtime.sendMessage({type:"STOP_RECORDING"}).catch(()=>{}),e({success:!0});break;case"GET_RECORDING_STATUS":e({isRecording:r});break;default:e({received:!0})}return!0});

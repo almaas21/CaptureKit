@@ -1,0 +1,54 @@
+{
+"update_url": "https://clients2.google.com/service/update2/crx",
+
+  "manifest_version": 3,
+  "name": "CaptureKit – Video Editor & Screen Recorder",
+  "version": "1.1.2",
+  "description": "Multi-track video editor: cut, trim, text, shapes. Record screen or import videos. Export MP4/WebM. No sign-up, no watermarks.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "microphone"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "ffmpeg/*",
+        "icons/*",
+        "vision_bundle.mjs",
+        "selfie_multiclass_256x256.tflite",
+        "selfie_segmenter.tflite",
+        "wasm/*",
+        "voiceover.js",
+        "voiceover.css",
+        "voiceover-integration.js",
+        "voiceover-store-monitor.js",
+        "transitions.js",
+        "transitions.css",
+        "transitions-integration.js",
+        "transitions-store-monitor.js",
+        "audio-control.js",
+        "fast-export.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

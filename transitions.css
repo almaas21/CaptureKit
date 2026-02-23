@@ -1,0 +1,546 @@
+/**
+ * Video Transitions Styles
+ */
+
+/* Main Panel */
+.transitions-panel {
+  background: #27272a;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  width: 360px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  border: 1px solid #3f3f46;
+}
+
+/* Header */
+.transitions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #18181b;
+  border-bottom: 1px solid #3f3f46;
+}
+
+.transitions-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fafafa;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.transitions-close {
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.transitions-close:hover {
+  background: #3f3f46;
+  color: #fafafa;
+}
+
+/* Content */
+.transitions-content {
+  padding: 16px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Preview Area */
+.transitions-preview {
+  background: #18181b;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #3f3f46;
+}
+
+.transitions-preview canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  background: #000;
+}
+
+.preview-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.preview-btn {
+  padding: 6px 14px;
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preview-btn:hover {
+  background: #6d28d9;
+}
+
+.preview-time {
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+/* Selected Clip Info */
+.selected-clip-info {
+  background: #18181b;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid #3f3f46;
+}
+
+.selected-clip-info p {
+  margin: 0;
+  font-size: 12px;
+  color: #a1a1aa;
+  line-height: 1.5;
+}
+
+.selected-clip-info strong {
+  color: #fafafa;
+}
+
+/* Current Transition */
+.current-transition {
+  background: #3f3f46;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.current-transition h4 {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.transition-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: #27272a;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.transition-item.selected {
+  border: 1px solid #7c3aed;
+}
+
+.transition-icon {
+  font-size: 20px;
+}
+
+.transition-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fafafa;
+}
+
+.remove-transition {
+  background: #dc2626;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.remove-transition:hover {
+  background: #b91c1c;
+}
+
+/* Duration Slider */
+.transition-duration {
+  margin-top: 10px;
+}
+
+.transition-duration label {
+  display: block;
+  font-size: 11px;
+  color: #a1a1aa;
+  margin-bottom: 6px;
+}
+
+.transition-duration input[type="range"] {
+  width: 100%;
+  height: 6px;
+  background: #18181b;
+  border-radius: 3px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.transition-duration input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #7c3aed;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.transition-duration input[type="range"]::-webkit-slider-thumb:hover {
+  background: #8b5cf6;
+  transform: scale(1.1);
+}
+
+/* Category Tabs */
+.transitions-categories {
+  margin-bottom: 16px;
+}
+
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3f3f46;
+}
+
+.category-tab {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #a1a1aa;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: capitalize;
+}
+
+.category-tab:hover {
+  background: #3f3f46;
+  color: #fafafa;
+}
+
+.category-tab.active {
+  background: #7c3aed;
+  color: white;
+  border-color: #7c3aed;
+}
+
+/* Transitions Grid */
+.transitions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.transitions-grid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.transitions-grid::-webkit-scrollbar-track {
+  background: #18181b;
+  border-radius: 2px;
+}
+
+.transitions-grid::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 2px;
+}
+
+.transition-card {
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.transition-card:hover {
+  background: #27272a;
+  border-color: #7c3aed;
+  transform: translateY(-2px);
+}
+
+.transition-card:active {
+  transform: translateY(0);
+}
+
+.transition-preview-icon {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.transition-card-name {
+  font-size: 10px;
+  font-weight: 500;
+  color: #fafafa;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transition-card-duration {
+  font-size: 9px;
+  color: #71717a;
+}
+
+/* Presets */
+.transitions-presets {
+  background: #18181b;
+  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid #3f3f46;
+}
+
+.transitions-presets h4 {
+  margin: 0 0 10px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.presets-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.preset-btn {
+  padding: 6px 14px;
+  background: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  color: #a1a1aa;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: capitalize;
+}
+
+.preset-btn:hover {
+  background: #3f3f46;
+  color: #fafafa;
+}
+
+.preset-btn:active {
+  transform: scale(0.95);
+}
+
+/* Transitions Button in Toolbar */
+.transitions-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.transitions-toolbar-btn:hover {
+  background: #6d28d9;
+  transform: translateY(-1px);
+}
+
+.transitions-toolbar-btn:active {
+  transform: translateY(0);
+}
+
+.transitions-toolbar-btn .icon {
+  font-size: 16px;
+}
+
+/* Feature Buttons Row - for voiceover and transitions buttons */
+.feature-buttons-row {
+  display: flex !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 8px !important;
+  margin: 8px !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+}
+
+.feature-buttons-row .voice-over-toolbar-btn,
+.feature-buttons-row .transitions-toolbar-btn {
+  margin: 0 !important;
+}
+
+/* Modal Overlay */
+.transitions-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+/* Positioning in editor */
+#transitionsContainer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10001;
+}
+
+/* Transition indicator on timeline clips */
+.timeline-clip-transition {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.3), transparent);
+  border-left: 2px solid #7c3aed;
+  border-right: 2px solid #7c3aed;
+  pointer-events: none;
+}
+
+.timeline-clip-transition::before {
+  content: '✨';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+}
+
+/* Transition badge on clip */
+.transition-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 16px;
+  height: 16px;
+  background: #7c3aed;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: white;
+  border: 2px solid #27272a;
+}
+
+/* Scrollbar styling for panel */
+.transitions-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.transitions-content::-webkit-scrollbar-track {
+  background: #18181b;
+  border-radius: 3px;
+}
+
+.transitions-content::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+
+.transitions-content::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .transitions-panel {
+    width: 100%;
+    max-width: 360px;
+  }
+  
+  .transitions-content {
+    padding: 12px;
+  }
+  
+  .transitions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Dark theme adjustments for editor integration */
+.transitions-panel * {
+  box-sizing: border-box;
+}
+
+/* Animation for transition cards */
+@keyframes transitionCardEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.transition-card {
+  animation: transitionCardEnter 0.2s ease-out;
+}
+
+/* Selected transition highlight animation */
+@keyframes selectedPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0);
+  }
+}
+
+.transition-item.selected {
+  animation: selectedPulse 1s ease-in-out;
+}

@@ -1,0 +1,456 @@
+/**
+ * Voice Over Module Styles
+ */
+
+/* Main Panel */
+.voice-over-panel {
+  background: #27272a;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  width: 320px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  border: 1px solid #3f3f46;
+}
+
+/* Header */
+.voice-over-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #18181b;
+  border-bottom: 1px solid #3f3f46;
+}
+
+.voice-over-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fafafa;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-over-close {
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.voice-over-close:hover {
+  background: #3f3f46;
+  color: #fafafa;
+}
+
+/* Content */
+.voice-over-content {
+  padding: 20px;
+}
+
+/* Status Section */
+.voice-over-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.record-dot {
+  width: 12px;
+  height: 12px;
+  background: #52525b;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.recording .record-dot {
+  background: #ef4444;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+.record-text {
+  font-size: 14px;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+.recording .record-text {
+  color: #ef4444;
+}
+
+.recording-timer {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-size: 20px;
+  font-weight: 600;
+  color: #fafafa;
+  letter-spacing: 0.05em;
+}
+
+/* Visualizer */
+.voice-over-visualizer {
+  background: #18181b;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #3f3f46;
+}
+
+.voice-over-visualizer canvas {
+  display: block;
+  width: 100%;
+  height: 60px;
+  border-radius: 4px;
+}
+
+/* Level Meter */
+.voice-over-level {
+  margin-bottom: 20px;
+}
+
+.level-bar-container {
+  height: 8px;
+  background: #18181b;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #3f3f46;
+}
+
+.level-bar {
+  height: 100%;
+  width: 0%;
+  background: #22c55e;
+  border-radius: 4px;
+  transition: width 0.1s ease-out, background-color 0.2s;
+}
+
+.level-bar.level-low {
+  background: #ef4444;
+}
+
+.level-bar.level-good {
+  background: #22c55e;
+}
+
+.level-bar.level-high {
+  background: #ef4444;
+}
+
+.level-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 10px;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Controls */
+.voice-over-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.voice-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.voice-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.voice-btn-record {
+  background: #dc2626;
+  color: white;
+}
+
+.voice-btn-record:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.voice-btn-record:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.voice-btn-stop {
+  background: #3f3f46;
+  color: #fafafa;
+}
+
+.voice-btn-stop:hover:not(:disabled) {
+  background: #52525b;
+  transform: translateY(-1px);
+}
+
+.voice-btn-stop:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.btn-text {
+  font-size: 12px;
+}
+
+/* Tips */
+.voice-over-tips {
+  background: #18181b;
+  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid #3f3f46;
+}
+
+.voice-over-tips p {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.voice-over-tips ul {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 11px;
+  color: #71717a;
+  line-height: 1.6;
+}
+
+.voice-over-tips li {
+  margin-bottom: 2px;
+}
+
+/* Error Message */
+.voice-over-error {
+  background: #dc2626;
+  color: white;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 12px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Voice Over Button in Toolbar */
+.voice-over-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.voice-over-toolbar-btn:hover {
+  background: #6d28d9;
+  transform: translateY(-1px);
+}
+
+.voice-over-toolbar-btn:active {
+  transform: translateY(0);
+}
+
+.voice-over-toolbar-btn .icon {
+  font-size: 16px;
+}
+
+/* Feature Buttons Row - for voiceover and transitions buttons */
+.feature-buttons-row {
+  display: flex !important;
+  gap: 8px !important;
+  padding: 8px 12px !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-radius: 8px !important;
+  margin: 8px !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+}
+
+.feature-buttons-row .voice-over-toolbar-btn,
+.feature-buttons-row .transitions-toolbar-btn {
+  margin: 0 !important;
+}
+
+/* Modal Overlay */
+.voice-over-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+/* Positioning in editor */
+#voiceOverContainer {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10001;
+}
+
+/* Recording Preview Item */
+.voice-over-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #18181b;
+  border-radius: 8px;
+  border: 1px solid #3f3f46;
+  margin-top: 12px;
+}
+
+.voice-over-preview-icon {
+  width: 40px;
+  height: 40px;
+  background: #7c3aed;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.voice-over-preview-info {
+  flex: 1;
+}
+
+.voice-over-preview-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fafafa;
+  margin: 0 0 2px 0;
+}
+
+.voice-over-preview-duration {
+  font-size: 11px;
+  color: #71717a;
+  margin: 0;
+}
+
+.voice-over-preview-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.voice-over-preview-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.voice-over-preview-btn-add {
+  background: #22c55e;
+  color: white;
+}
+
+.voice-over-preview-btn-add:hover {
+  background: #16a34a;
+}
+
+.voice-over-preview-btn-discard {
+  background: #3f3f46;
+  color: #a1a1aa;
+}
+
+.voice-over-preview-btn-discard:hover {
+  background: #52525b;
+  color: #fafafa;
+}
+
+/* Dark theme adjustments for editor integration */
+.voice-over-panel * {
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  .voice-over-panel {
+    width: 100%;
+    max-width: 320px;
+  }
+  
+  .voice-over-content {
+    padding: 16px;
+  }
+  
+  .voice-btn {
+    padding: 12px;
+  }
+}
